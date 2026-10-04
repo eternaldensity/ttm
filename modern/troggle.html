@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Troggle Trouble Math — Modern Recreation (1994 MECC tribute)</title>
+<style>
+:root{--bg:#0d1021;--panel:#1a2040;--ink:#f2f0ff;--acc:#ffd23f;--good:#5dff8f;--bad:#ff6b6b;--mut:#9aa3c7}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:#141a38;border-bottom:2px solid #2c3570}
+header h1{font-size:18px;margin:0 8px 0 0}header h1 small{color:var(--mut);font-weight:400}
+.pill{background:#0a0d20;border:1px solid #343d7d;border-radius:999px;padding:4px 10px;font-size:14px}
+.bar{height:10px;background:#05071a;border-radius:99px;overflow:hidden;min-width:120px}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#37e08b,#ffd23f);width:100%}
+main{max-width:980px;margin:0 auto;padding:14px}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid #2c3570;border-radius:12px;padding:12px}
+.card h2{margin:.1em 0 .4em;font-size:17px}
+button{background:var(--acc);border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer}
+button.ghost{background:#2a3263;color:#fff}button.danger{background:var(--bad)}button:disabled{opacity:.45;cursor:not-allowed}
+input,select{font:inherit;padding:7px 9px;border-radius:8px;border:1px solid #3a4486;background:#0a0d20;color:#fff}
+.chests{display:flex;gap:10px;margin:10px 0}.chest{flex:1;text-align:center;background:#0a0d20;border:2px solid #3a4486;border-radius:10px;padding:14px 6px;font-size:40px;cursor:pointer}.chest small{display:block;font-size:12px;color:var(--mut)}.chest.open{border-color:var(--acc);cursor:default}.chest.clue{border-color:var(--good)}
+.trogs{font-size:34px;letter-spacing:4px;min-height:48px;text-align:center}
+.log{height:170px;overflow:auto;background:#0a0d20;border:1px solid #2c3570;border-radius:8px;padding:8px;font-size:14px}
+.log b{color:var(--acc)}.modal{position:fixed;inset:0;background:rgba(0,0,10,.66);display:none;align-items:center;justify-content:center;padding:16px}.modal.on{display:flex}.sheet{background:#171d3d;border:2px solid #3d478f;border-radius:14px;max-width:560px;width:100%;padding:16px}.sheet h3{margin-top:0}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.mut{color:var(--mut)}.good{color:var(--good)}.bad{color:var(--bad)}.kbd{background:#000;border:1px solid #555;border-radius:4px;padding:0 5px;font-family:monospace}
+footer{max-width:980px;margin:0 auto;padding:0 14px 26px;color:var(--mut);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>🟣 Troggle Trouble Math <small>modern tribute · MECC 1994</small></h1>
+<span class="pill">Level <b id="hLevel">1/8</b> · <span id="hName">Bongo Falls</span></span>
+<span class="pill">⚡ <span class="bar" style="display:inline-block;width:110px;vertical-align:middle"><i id="hEnergy"></i></span> <b id="hEnergyN">100</b></span>
+<span class="pill">🍪 Treats <b id="hTreats">3</b></span>
+<span class="pill">⭐ Score <b id="hScore">0</b></span>
+<span class="pill">Grade <b id="hGrade">3</b></span>
+</header>
+<main>
+<div class="grid">
+<div class="card">
+<h2>🔍 Explore — find the 3 chests</h2>
+<div class="mut">One chest hides the <b>clue</b> to the next level. The other two hide Sparky treats. Click a chest, solve the story problem. Watch for troggles — Sparky howls when they near!</div>
+<div class="chests" id="chests"></div>
+<div class="trogs" id="trogs" title="troggles on screen"></div>
+<div class="row">
+<button id="bTrog" disabled>🛡️ Troggulate (Space)</button>
+<button id="bPower" class="ghost">⚡ Power up (drill)</button>
+<button id="bPhone" class="ghost">☎️ Call Magenta</button>
+<button id="bDrill" class="ghost">⏱️ Drill room</button>
+</div>
+<div class="row mut" id="status">Pick a grade, then press Start.</div>
+<div class="row">
+<label>Grade <select id="selGrade"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+<button id="bStart">▶ Start / Restart</button>
+<button id="bSave" class="ghost">💾 Save</button>
+<button id="bLoad" class="ghost">📂 Load</button>
+<button id="bHelp" class="ghost">❓ Help</button>
+<button id="bScores" class="ghost">🏆 Heroes</button>
+</div>
+</div>
+<div class="card">
+<h2>☎️ Magenta’s Troggulator</h2>
+<div class="log" id="log"></div>
+<div class="row mut">Energy powers troggulation + phone. Treats are lives: 3 wrong troggulations = Sparky goes home.</div>
+</div>
+</div>
+</main>
+
+<div class="modal" id="mStory"><div class="sheet">
+<h3 id="sTitle">Chest puzzle</h3>
+<div id="sText"></div>
+<div class="row"><input id="sAns" inputmode="decimal" placeholder="your answer (e.g. 12 or 1/2)" style="flex:1;min-width:200px"><button id="sGo">Answer</button></div>
+<div id="sFeed" class="mut"></div>
+</div></div>
+
+<div class="modal" id="mTrog"><div class="sheet">
+<h3>🛡️ Troggulator — <span id="tN"></span> troggles!</h3>
+<div class="mut">Type an equation that <b>equals the troggle count</b> (e.g. <span class="kbd">4+4</span> for 8). Must contain <span class="kbd">+</span>. No zeros. Then press Zap!</div>
+<div class="trogs" id="tFaces"></div>
+<div class="row"><input id="tEq" placeholder="e.g. 3+3" style="flex:1"><button id="tGo">⚡ Zap!</button></div>
+<div id="tFeed" class="mut"></div>
+</div></div>
+
+<div class="modal" id="mDrill"><div class="sheet">
+<h3>⚡ Power drill — <span id="dTime">60</span>s</h3>
+<div class="mut">Quick math, no calculator. Each correct answer = +4 energy.</div>
+<div style="font-size:22px;margin:8px 0" id="dQ"></div>
+<div class="row"><input id="dAns" inputmode="decimal" style="flex:1"><button id="dGo">Go</button></div>
+<div id="dFeed"></div>
+<div class="row"><button id="dEnd" class="ghost">Stop drill</button></div>
+</div></div>
+
+<div class="modal" id="mHelp"><div class="sheet">
+<h3>How to play (after the 1994 original)</h3>
+<div style="font-size:14px">
+<p><b>Story:</b> Robot-TROG (run by Dr. FrankenTroggle) grabbed the Muncher. Scientist Magenta sends you — her troggle-sniffing dog <b>Sparky</b> — through 8 levels to get clues and save the day.</p>
+<p><b>Loop per level:</b> open 3 chests → each needs a grade-level <b>story problem</b>. One chest = clue (advance), two = treats.</p>
+<p><b>Troggles:</b> when Sparky howls, hit <b>Troggulate</b> and enter an equation equal to the troggle count (e.g. 8 → <span class="kbd">4+4</span>). Wrong/slow = troggles munch a whole treat box. Lose all 3 → Sparky goes home.</p>
+<p><b>Energy:</b> troggulating costs 10, phone costs 5. Chests give +10. Run a <b>60-second drill</b> to recharge.</p>
+<p><b>Grades 1–7:</b> 1–2 add/subtract small; 3–4 add/sub/mult/div bigger; 5–7 fractions, decimals, multi-step. The original tags problems like <span class="kbd">[#123]</span>; this tribute filters the same way.</p>
+</div>
+<div class="row"><button id="bCloseHelp">Close</button></div>
+</div></div>
+
+<div class="modal" id="mScores"><div class="sheet">
+<h3>🏆 Bone-A-Fide Heroes</h3>
+<ol id="scoreList"></ol>
+<div class="row"><button id="bCloseScores">Close</button><button id="bWipe" class="danger">Erase heroes</button></div>
+</div></div>
+
+<footer>
+<p>Clean-room tribute. No 1994 binaries, art, or audio embedded. Mechanics mirror the decompiled original (8 levels, 3-chest/clue structure, troggulate-by-equation, 60-s drills, energy + 3 treat boxes, grades 1–7). See <span class="kbd">docs/DECOMPILATION.md</span>. Sound is re-synthesized WebAudio; chests/art are emoji.</p>
+</footer>
+
+<script>
+"use strict";
+/* ============ data (original-inspired, newly worded) ============ */
+const LEVELS=[
+ {name:"Bongo Falls",item:"beaker of TROG oil",hint:"Check the park and park sheds."},
+ {name:"Gobble Desert",item:"TROG energy crystal",hint:"Search the desert caves."},
+ {name:"Muncher Cave",item:"TROG power jet pack",hint:"Look inside the caves."},
+ {name:"Troggle Swamp",item:"TROG himself (freed!)",hint:"TROG wanders the swamp."},
+ {name:"Muncher Cave",item:"mutantizer part",hint:"Back to the caves — Frankentroggle moved in."},
+ {name:"Gobble Desert",item:"Time Gizmo",hint:"Check the caves for the Time Gizmo."},
+ {name:"Bongo Falls",item:"lab book",hint:"Look in the sheds for the lab book."},
+ {name:"Transition Zone",item:"the Muncher (rescue!)",hint:"Get FrankenTroggle before it is too late!"}];
+const WORDS={
+ food:["apple slices","cheese cubes","crackers","pretzels","carrot sticks","popcorn cups","granola bars"],
+ pet:["hamsters","goldfish","turtles","parakeets","kittens","puppies"],
+ clothes:["baseball jerseys","denim shirts","socks","mittens","scarves"],
+ instr:["kazoos","tambourines","recorders","ukuleles"],
+ tool:["wrenches","screwdrivers","gears","batteries"],
+ name:["spotty","stripey","giggly","wobbly","fuzzy"]};
+const PRAISE=["Way to go!","That's right!","Correct!","Great!","Yes!","Good!","Awesome!","Super!"];
+const TRYAGAIN=["No. Try another.","No. Check the numbers.","No. Read it once more.","No. Estimate first."];
+// grade: [addMax, subMax, multMax, trogMin, trogMax, allowMulDiv, frac]
+const GRADES={1:{a:10,s:10,m:0,t:[2,5],md:false,fr:false},2:{a:20,s:20,m:0,t:[2,7],md:false,fr:false},
+ 3:{a:100,s:100,m:5,t:[3,8],md:true,fr:false},4:{a:200,s:200,m:9,t:[3,10],md:true,fr:false},
+ 5:{a:500,s:500,m:12,t:[4,11],md:true,fr:true},6:{a:1000,s:1000,m:12,t:[4,12],md:true,fr:true},
+ 7:{a:2000,s:2000,m:15,t:[5,12],md:true,fr:true}};
+function ri(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(x){return x[Math.floor(Math.random()*x.length)];}
+function gradeOK(tag,g){const m=tag.match(/#([0-9$]+)/);if(!m)return true;const t=m[1];if(t.includes("$"))return g>=3;return t.includes(String(g));}
+// story templates: [gradesTag,title,fn] — fn(g)=>{text,answer}
+function num(g,kind){const G=GRADES[g];
+ if(kind==="A")return ri(2,Math.min(G.a,10+g*4)); if(kind==="B")return ri(2,Math.min(G.a,8+g*3));
+ if(kind==="G")return ri(6,10+g*4); if(kind==="J")return ri(2,2+Math.min(G.m,9)); if(kind==="K")return ri(2,2+Math.min(G.m,9));
+ if(kind==="M")return ri(6,6+g*3); return ri(2,6);}
+const TEMPLATES=[
+ {t:"[#123]",title:"Troggle snacks",mk(g){const a=num(g,"A"),b=num(g,"B"),f=pick(WORDS.food);return{text:`A troggle ate ${a} ${f}. Then it ate ${b} more ${f}. How many in all?`,ans:a+b};}},
+ {t:"[#123]",title:"Mud troggles",mk(g){const a=num(g,"A"),b=num(g,"B"),n=pick(WORDS.name);return{text:`${a} ${n} troggles sat in the mud. Then ${b} joined them. How many in the mud?`,ans:a+b};}},
+ {t:"[#123]",title:"Sparky barks",mk(g){const a=num(g,"A"),b=num(g,"B");return{text:`Sparky barked ${a} times, then ${b} more times. How many barks in all?`,ans:a+b};}},
+ {t:"[#123456]",title:"Troggle recess",mk(g){const G=num(g,"G"),H=ri(1,G-1);return{text:`${G} troggles were on the playground. Then ${H} went inside. How many were left?`,ans:G-H};}},
+ {t:"[#123]",title:"Snack box",mk(g){const G=num(g,"G"),H=ri(1,Math.min(G-1,8));return{text:`Sparky had ${G} snacks in a box and ate ${H}. How many are left?`,ans:G-H};}},
+ {t:"[#3456]",title:"Troggle rows",mk(g){const j=num(g,"J"),k=num(g,"K"),n=pick(WORDS.name);return{text:`There were ${j} rows of ${n} troggles with ${k} in each row. How many troggles?`,ans:j*k};}},
+ {t:"[#3456]",title:"Sparky runs",mk(g){const j=Math.max(2,num(g,"J")),k=Math.max(2,num(g,"K"));return{text:`Sparky runs ${j} miles an hour and ran ${k} hours. How many miles?`,ans:j*k};}},
+ {t:"[#3456]",title:"Share the snacks",mk(g){const n=ri(2,6),m=n*ri(2,9);return{text:`${n} troggles share ${m} ${pick(WORDS.food)} equally. How many does each get?`,ans:m/n};}},
+ {t:"[#3456$]",title:"Gizmoid bill",mk(g){const p=(ri(2,19)+Math.random()).toFixed(2),q=(ri(2,19)+Math.random()).toFixed(2);return{text:`Microchips cost $${p} and cables $${q}. What is the total bill?`,ans:(+p)+(+q)};}},
+ {t:"[#456]",title:"Half cups",mk(g){const u=pick([2,3,4]),s=ri(1,u-1),t=ri(1,u-s);return{text:`Magenta poured ${s}/${u} cups of dog food, then ${t}/${u} more. How many cups? (answer like ${s+t}/${u})`,ans:(s+t)+"/"+u,alt:(s+t)/u};}},
+ {t:"[#6]",title:"Decimal match",mk(g){const b=pick([2,4,5,8,10]),c=ri(1,b-1);return{text:`Sparky sniffed ${c}/${b} of the toys. What is the decimal?`,ans:c/b};}},
+ {t:"[#34]",title:"Two-step fund",mk(g){const a=num(g,"A"),b=num(g,"B");return{text:`TROG found ${a} pets and ${b} pets. Dr. FrankenTroggle pays $2 each. How much does TROG get?`,ans:(a+b)*2};}}];
+function storyFor(g){const pool=TEMPLATES.filter(t=>gradeOK(t.t,g));return pick(pool);}
+/* ============ state ============ */
+const S={level:0,grade:3,energy:100,treats:3,score:0,chests:[],open:0,clueIdx:0,attack:null,drill:null,over:false};
+const $=id=>document.getElementById(id);
+function log(html){const l=$("log");l.insertAdjacentHTML("beforeend",`<div>${html}</div>`);l.scrollTop=l.scrollHeight;}
+function beep(f,d,type){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=beep.c||(beep.c=new C());const o=c.createOscillator(),g=c.createGain();o.type=type||"square";o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+(d||.12));}catch(e){}}
+function hud(){$("hLevel").textContent=(S.level+1)+"/8";$("hName").textContent=LEVELS[S.level].name;
+ $("hEnergy").style.width=S.energy+"%";$("hEnergyN").textContent=S.energy;$("hTreats").textContent=S.treats;
+ $("hScore").textContent=S.score;$("hGrade").textContent=S.grade;}
+function magenta(t){log(`<b>Magenta:</b> ${t}`);}
+function newLevel(){S.open=0;S.attack=null;S.chests=[0,1,2].sort(()=>Math.random()-.5);S.clueIdx=ri(0,2);
+ const c=$("chests");c.innerHTML="";["🍪+?","🍪+?","🍪+?"].forEach((_,i)=>{const d=document.createElement("div");d.className="chest";d.id="ch"+i;d.innerHTML=`🎁<small>chest ${i+1}</small>`;d.onclick=()=>openChest(i);c.appendChild(d);});
+ $("trogs").textContent="";$("bTrog").disabled=true;
+ magenta(`<b>Level ${S.level+1}: ${LEVELS[S.level].name}.</b> ${LEVELS[S.level].hint} Find the <b>${LEVELS[S.level].item}</b>!`);
+ hud();scheduleAttack();}
+function openChest(i){if(S.over)return;const el=$("ch"+i);if(!el||el.classList.contains("open"))return;
+ const isClue=(i===S.clueIdx);const T=storyFor(S.grade);const q=T.mk(S.grade);
+ $("sTitle").textContent=(isClue?"💎 Clue chest — ":"🍪 Treat chest — ")+T.title;
+ $("sText").innerHTML=`<p>${q.text}</p><p class="mut">Level ${S.level+1} · Grade ${S.grade}</p>`;
+ $("sFeed").textContent="";$("sAns").value="";$("mStory").classList.add("on");$("sAns").focus();
+ $("sGo").onclick=()=>{const v=$("sAns").value.trim();if(!v)return;
+  let ok=false;if(typeof q.ans==="number"){ok=Math.abs(parseFloat(v)-q.ans)<1e-9;}
+  else{ok=v.replace(/\s/g,"")===String(q.ans).replace(/\s/g,"")||Math.abs(parseFloat(v)-q.alt)<1e-9;}
+  if(ok){beep(660,.12);S.score+=10;S.energy=Math.min(100,S.energy+10);
+   el.classList.add("open");el.innerHTML=(isClue?"💎":"🍪")+"<small>opened</small>";if(isClue)el.classList.add("clue");
+   $("mStory").classList.remove("on");S.open++;
+   if(isClue){log(`✅ Clue found: <b>${LEVELS[S.level].item}</b>!`);magenta(pick(PRAISE)+` That was the clue!`);
+    if(S.level===3)magenta("Yow! Thanks — I'm free of mind control! FrankenTroggle has the Muncher. Go back the way you came!");
+    if(S.level>=7){win();}else{S.level++;setTimeout(newLevel,600);}}
+   else{S.treats=Math.min(5,S.treats+0);log(`✅ Treat box secured (+10).`);magenta(pick(PRAISE));}
+   hud();}
+  else{beep(160,.2,"sawtooth");$("sFeed").innerHTML=`<span class="bad">${pick(TRYAGAIN)}</span>`;S.score=Math.max(0,S.score-2);hud();}};}
+/* ---- troggles ---- */
+let atkTimer=null;
+function scheduleAttack(){clearTimeout(atkTimer);if(S.over)return;atkTimer=setTimeout(spawnAttack,ri(9000,18000));}
+function spawnAttack(){if(S.over||S.open>=3)return;const G=GRADES[S.grade];const n=ri(G.t[0],G.t[1]);
+ S.attack={n,left:22};$("trogs").textContent="👹".repeat(n)+`  (${n})`;beep(220,.3,"sawtooth");
+ log(`🐶 <b>Sparky howls!</b> ${n} troggles! Hit Troggulate!`);$("bTrog").disabled=false;
+ S.attack.iv=setInterval(()=>{S.attack.left--;if(S.attack.left<=0)miss("They reached Sparky!");},1000);}
+function miss(msg){if(!S.attack)return;clearInterval(S.attack.iv);S.attack=null;$("trogs").textContent="";$("bTrog").disabled=true;
+ S.treats--;S.score=Math.max(0,S.score-5);beep(120,.4,"sawtooth");
+ log(`❌ ${msg} Troggles munched a <b>whole treat box</b>! (${S.treats} left)`);
+ if(S.treats<=0){gameOver();}else{magenta("Careful! Troggles love Sparky treats!");hud();scheduleAttack();}}
+function safeEq(eq){if(!/^[0-9+\-*/().\s]+$/.test(eq))return null;if(!eq.includes("+"))return null;
+ if(/(^|[^0-9])0+([1-9]|[^0-9]|$)/.test(eq.replace(/0\./g,"X"))&&/\b0\b/.test(eq))return null;
+ try{const v=Function('"use strict";return ('+eq+")")();if(typeof v!=="number"||!isFinite(v))return null;return v;}catch(e){return null;}}
+function openTrog(){if(!S.attack)return;if(S.energy<10){$("tFeed").textContent="Not enough energy to troggulate! Run a drill.";return;}
+ $("tN").textContent=S.attack.n;$("tFaces").textContent="👹".repeat(S.attack.n);$("tEq").value="";$("tFeed").textContent="";$("mTrog").classList.add("on");$("tEq").focus();}
+function zap(){if(!S.attack)return;const v=safeEq($("tEq").value);
+ if(v===null){$("tFeed").textContent="You must enter an equation with + (no zeros). e.g. 4+4";return;}
+ if(Math.abs(v-S.attack.n)<1e-9){clearInterval(S.attack.iv);S.attack=null;$("mTrog").classList.remove("on");
+  $("trogs").textContent="";$("bTrog").disabled=true;S.energy=Math.max(0,S.energy-10);S.score+=10;beep(880,.15);
+  log(`⚡ <b>Troggulated!</b> ${$("tEq").value||""} — zapped back to their dimension!`);magenta(pick(PRAISE));
+  hud();scheduleAttack();}
+ else{$("tFeed").innerHTML=`<span class="bad">That equals ${v}, not ${S.attack.n}. Try again!</span>`;beep(180,.2,"sawtooth");}}
+/* ---- drill ---- */
+function startDrill(){if(S.drill)return;S.drill={t:60,ok:0};$("mDrill").classList.add("on");nextDrill();
+ S.drill.iv=setInterval(()=>{S.drill.t--;$("dTime").textContent=S.drill.t;
+  if(S.drill.t<=0)endDrill();},1000);}
+function drillQ(g){const G=GRADES[g];const r=Math.random();
+ if(G.fr&&r<.2){const u=pick([2,4,5,10]),c=ri(1,u-1);return{q:`${c}/${u} as decimal?`,a:c/u};}
+ if(G.md&&r<.45){const a=ri(2,G.m+2),b=ri(2,G.m+2);return r<.5?{q:`${a} × ${b} = ?`,a:a*b}:{q:`${a*b} ÷ ${a} = ?`,a:b};}
+ if(r<.5){const a=ri(2,G.a),b=ri(2,Math.min(G.a,30));return{q:`${a} + ${b} = ?`,a:a+b};}
+ const a=ri(4,G.a);const b=ri(1,a-1);return{q:`${a} − ${b} = ?`,a:a-b};}
+function nextDrill(){const q=drillQ(S.grade);S.drill.q=q;$("dQ").textContent=q.q;$("dAns").value="";$("dAns").focus();$("dFeed").textContent="";}
+function answerDrill(){if(!S.drill)return;const v=parseFloat($("dAns").value);if(isNaN(v))return;
+ if(Math.abs(v-S.drill.q.a)<1e-9){S.drill.ok++;S.score+=2;S.energy=Math.min(100,S.energy+4);beep(740,.08);$("dFeed").innerHTML='<span class="good">Correct! +energy</span>';}
+ else{$("dFeed").innerHTML=`<span class="bad">No — it was ${S.drill.q.a}.</span>`;beep(200,.15,"sawtooth");}
+ hud();setTimeout(nextDrill,450);}
+function endDrill(){if(!S.drill)return;clearInterval(S.drill.iv);const n=S.drill.ok;S.drill=null;$("mDrill").classList.remove("on");
+ log(`⚡ Drill done: <b>${n}</b> correct. Energy recharged.`);magenta(n>5?"Powering up! Amazing!":"Good effort — drill again anytime!");hud();}
+/* ---- meta ---- */
+function gameOver(){S.over=true;clearTimeout(atkTimer);$("status").innerHTML='<span class="bad">Out of treats — Sparky goes home. Press Start to try again.</span>';
+ magenta("Sorry… you ran out of Sparky treats! Come home, little Sparky!");saveScore();hud();}
+function win(){S.over=true;S.score+=S.treats*50;clearTimeout(atkTimer);
+ log(`🏆 <b>YOU SAVED THE MUNCHER!</b> Mutant invasion stopped! Final score ${S.score}.`);
+ magenta("Troggliffic! You saved the Muncher and the world!");saveScore();hud();
+ $("status").innerHTML='<span class="good">You won! See Bone-A-Fide Heroes. Press Start to play again.</span>';}
+function saveScore(){try{const k="troggleHeroes";const a=JSON.parse(localStorage.getItem(k)||"[]");
+ const name=prompt("Bone-A-Fide Hero! Enter your name:","Unknown")||"Unknown";
+ a.push({n:String(name).slice(0,18),s:S.score,g:S.grade,d:new Date().toLocaleDateString()});
+ a.sort((x,y)=>y.s-x.s);localStorage.setItem(k,JSON.stringify(a.slice(0,8)));}catch(e){}}
+function showScores(){try{const a=JSON.parse(localStorage.getItem("troggleHeroes")||"[]");
+ $("scoreList").innerHTML=a.length?a.map(h=>`<li><b>${h.s}</b> — ${h.n} (grade ${h.g}, ${h.d})</li>`).join(""):"<li class='mut'>No heroes yet. Win or lose with points to join!</li>";
+ }catch(e){}$("mScores").classList.add("on");}
+function save(){try{localStorage.setItem("troggleSave",JSON.stringify({level:S.level,grade:S.grade,energy:S.energy,treats:S.treats,score:S.score}));$("status").textContent="Saved.";}catch(e){$("status").textContent="Save failed.";}}
+function load(){try{const s=JSON.parse(localStorage.getItem("troggleSave")||"null");if(!s){$("status").textContent="No save found.";return;}
+ Object.assign(S,{level:s.level,grade:s.grade,energy:s.energy,treats:s.treats,score:s.score,over:false});
+ $("selGrade").value=String(S.grade);newLevel();$("status").textContent="Loaded.";}catch(e){$("status").textContent="Load failed.";}}
+/* ---- wire ---- */
+$("bStart").onclick=()=>{S.grade=+$("selGrade").value;Object.assign(S,{level:0,energy:100,treats:3,score:0,over:false});clearTimeout(atkTimer);
+ log(`<b>New game</b> — grade ${S.grade}. Magenta briefs you…`);
+ magenta("Hi! I'm Magenta. TROG grabbed the Muncher! Take Sparky, the Troggulator, and 3 treat boxes. Check Bongo Falls first!");
+ $("status").textContent="Explore! Click a chest.";newLevel();};
+$("selGrade").onchange=e=>{S.grade=+e.target.value;hud();};
+$("bTrog").onclick=openTrog;$("tGo").onclick=zap;
+$("bPower").onclick=()=>{if(S.energy>=100){$("status").textContent="Energy cells are full!";return;}startDrill();};
+$("bDrill").onclick=startDrill;$("dGo").onclick=answerDrill;$("dEnd").onclick=endDrill;
+$("bPhone").onclick=()=>{if(S.energy<5){$("status").textContent="Not enough energy to call Magenta!";return;}
+ S.energy-=5;magenta(pick(["Keep hunting the clue in this level!","Sparky howls when troggles are near — troggulate fast!","Stuck? Run a power drill for energy.","One chest here holds the clue; two hold treats."]));hud();};
+$("bSave").onclick=save;$("bLoad").onclick=load;
+$("bHelp").onclick=()=>$("mHelp").classList.add("on");$("bCloseHelp").onclick=()=>$("mHelp").classList.remove("on");
+$("bScores").onclick=showScores;$("bCloseScores").onclick=()=>$("mScores").classList.remove("on");
+$("bWipe").onclick=()=>{if(confirm("Erase all heroes?")){localStorage.removeItem("troggleHeroes");showScores();}};
+document.addEventListener("keydown",e=>{if(e.key===" "&&S.attack&&!$("mTrog").classList.contains("on")&&!S.over){e.preventDefault();openTrog();}
+ if(e.key==="Escape")document.querySelectorAll(".modal.on").forEach(m=>m.classList.remove("on"));});
+$("sAns").addEventListener("keydown",e=>{if(e.key==="Enter")$("sGo").click();});
+$("tEq").addEventListener("keydown",e=>{if(e.key==="Enter")zap();});
+$("dAns").addEventListener("keydown",e=>{if(e.key==="Enter")answerDrill();});
+log("👋 Welcome! Set a grade and press <b>Start</b>. (Space = troggulate when Sparky howls.)");
+hud();
+</script>
+</body>
+</html>
